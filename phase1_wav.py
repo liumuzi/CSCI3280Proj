@@ -10,6 +10,7 @@ import sys
 WAV_HEADER_SIZE = struct.calcsize('<4si4s4sihhiihh4si')
 
 def wav_header_unpack(data):
+  print("Start reading wave file.")
   #unpack wav header information
   (riff, riffsize, wave, fmt, fmtsize, format, nchannels, samplespersecond, \
   datarate, blockalign, bitspersample, data, datalength) = struct.unpack('<4si4s4sihhiihh4si', data)
@@ -49,6 +50,7 @@ sdesc = ds.DSBUFFERDESC()
 sdesc.dwFlags = ds.DSBCAPS_STICKYFOCUS | ds.DSBCAPS_CTRLPOSITIONNOTIFY
 sdesc.dwBufferBytes = size
 sdesc.lpwfxFormat = wfx
+
 buffer = d.CreateSoundBuffer(sdesc, None)
 event = win32event.CreateEvent(None, 0, 0, None)
 notify = buffer.QueryInterface(ds.IID_IDirectSoundNotify)
