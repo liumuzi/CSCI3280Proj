@@ -10,6 +10,26 @@ BUFFERSIZE = 204800
 class Window:
     def __init__(self):
         self.root = root = tkinter.Tk()
+
+        root.title('Music Player')
+        root.minsize(width=500,height=400)
+        root.maxsize(width=500,height=400)
+        root.resizable(width=False, height=False)
+
+        albumFrame = Frame(root,width=500,height=145, bd = 3,bg='lightblue')
+        toolBar = Frame(root,width=500,height=115, bd = 2,bg='white')
+        musicList = Frame(root,width=500,height=100, bd = 2)
+        volumeIcon = PhotoImage(file='volume.png').subsample(2,2)
+        volumeUpIcon = PhotoImage(file='volume_up.png').subsample(3,3)
+        volumeDownIcon = PhotoImage(file='volume_down.png').subsample(3,3)
+        playLastIcon = PhotoImage(file='last_song.png').subsample(2,2)
+        playNextIcon = PhotoImage(file='next_song.png').subsample(2,2)
+        playIcon = PhotoImage(file='play.png').subsample(1,1)
+        pauseIcon = PhotoImage(file='pause.png').subsample(1,1)
+        stopIcon = PhotoImage(file='stop.png').subsample(1,1)
+        lyricIcon = PhotoImage(file='lyric.png').subsample(2,2)
+
+
         buttonAdd = tkinter.Button(root, text = 'Add', command = self.add)
         buttonAdd.pack(side = 'left')
         buttonPlay = tkinter.Button(root, text = 'Play', command = self.play)
@@ -18,6 +38,7 @@ class Window:
         buttonStop.pack(side = 'left')
         buttonPause = tkinter.Button(root, text = "Pause", command = self.pause)
         buttonPause.pack(side = 'left')
+
         self.currentpos = 0
 
     def add(self):
