@@ -27,6 +27,7 @@ class MusicPlay(object):
 		self.volon = True
 		self.volume = 15
 		self.SetVolume(self.volume)
+		self.showlyric = False
 
 		self.filename = None
 		self.total_info = None
@@ -176,7 +177,11 @@ class MusicPlay(object):
 	    self.frontbuffer.SetCurrentPosition(self.currentpos)
 	    self.frontbuffer.Play(0)
 	
-	def showLyric(self, event):
+	def showLyric(self):
+		if self.showlyric == False:
+			self.showlyric = True
+		elif self.showlyric == True:
+			self.showlyric = False
 		print("show lyric")
 
 	def getMusic(self, event):
@@ -263,12 +268,13 @@ class MusicPlay(object):
 myplayer = MusicPlay()
 root = Tk()
 root.title('Music Player')
-root.minsize(width=500,height=400)
-root.maxsize(width=500,height=400)
+root.minsize(width=500,height=500)
+root.maxsize(width=500,height=500)
+root.iconbitmap('logo.ico')
 
 albumFrame = Frame(root,width=500,height=145, bd = 3,bg='lightblue')
 toolBar = Frame(root,width=500,height=115, bd = 2,bg='white')
-searchList = Frame(root,width=500,height=20, bd = 2)
+searchList = Frame(root,width=500,height=40, bd = 2,bg='white')
 musicList = Frame(root,width=500,height=100, bd = 2)
 
 def setVol():
@@ -277,6 +283,13 @@ def setVol():
 	elif myplayer.volon == False:
 		volumeButton.config(image = volumeIcon)
 	myplayer.setVol()
+
+def setLyric():
+	if myplayer.showlyric == False:
+		lyricButton.config(image = lyricIcon)
+	elif myplayer.showlyric == True:
+		lyricButton.config(image=infoIcon)
+	myplayer.showLyric()
 
 volumeIcon = PhotoImage(file='volume.png').subsample(2,2)
 muteIcon = PhotoImage(file = 'mute.png').subsample(2,2)
@@ -288,7 +301,7 @@ playIcon = PhotoImage(file='play.png').subsample(1,1)
 pauseIcon = PhotoImage(file='pause.png').subsample(1,1)
 stopIcon = PhotoImage(file='stop.png').subsample(1,1)
 lyricIcon = PhotoImage(file='lyric.png').subsample(2,2)
-
+infoIcon = PhotoImage(file='song_info.png').subsample(3,3)
 
 volumeButton = Button(toolBar, image = volumeIcon, command = setVol, width = 35, height = 35,relief="solid",bd=0,bg='white')
 volumeButton.place(x=15,y=23)
@@ -321,8 +334,8 @@ playNextButton = Button(toolBar, image = playNextIcon, width = 35, height = 35,r
 playNextButton.bind('<Button-1>', myplayer.playNext)
 playNextButton.place(x=383,y=25)
 
-lyricButton = Button(toolBar, image = lyricIcon,width = 35, height = 35,relief="solid",bd=0,bg='white')
-lyricButton.bind('<Button-1>', myplayer.showLyric)
+lyricButton = Button(toolBar, image = lyricIcon,width = 35, command = setLyric, height = 35,relief="solid",bd=0,bg='white')
+#lyricButton.bind('<Button-1>', setLyric)
 lyricButton.place(x=447,y=24)
 
 
@@ -341,12 +354,13 @@ prog.place(x=1,y=80)
 
 #Search Box
 search_text = StringVar()
-searchBox = Entry(searchList, textvariable = search_text, width = 70)
-searchBox.place(x = 0, y  =0)
+searchBox = Entry(searchList, textvariable = search_text, width = 60,bd=2)
+searchBox.place(x = 4, y  =7)
 
 #Search Button
-searchButton = Button(searchList, text = "Search", width = 8, height = 1, command = myplayer.doSearch)
-searchButton.place(x = 425, y = 0)
+searchIcon = PhotoImage(file='search.png').subsample(15,15)
+searchButton = Button(searchList, image=searchIcon, width = 40, height = 25,bg='white',bd=0, command = myplayer.doSearch)
+searchButton.place(x = 440, y = 3)
 
 #Song Information
 text_info = StringVar()
@@ -354,24 +368,48 @@ text_info.set("")
 infoLabel = Label(musicList, textvariable = text_info)
 infoLabel.grid()
 
-
-
 #Music List
-music=['1.wav','2.wav','3.wav','4.wav','5.wav','6.wav','7.wav','8.wav','9.wav','10.wav','11.wav','12.wav','13.wav','14.wav','15.wav']
+#music=['1.wav','2.wav','3.wav','4.wav','5.wav','6.wav','7.wav','8.wav','9.wav','10.wav','11.wav','12.wav','13.wav','14.wav','15.wav']
+test = []
+theCursor.execute("SELECT file_name FROM song")
+allmusic = theCursor.fetchall()
+for i in range(len(allmusic)):
+	test.append(allmusic[i][0])
+print(test)
+music = test
 
-musicBox = Listbox(musicList, width = 80, height = 8, activestyle = 'dotbox', listvariable = music)
+musicBox = Listbox(musicList, width = 80, height = 12, activestyle = 'dotbox', listvariable = music)
+
+def callback(name, win):
+	print('Change filename from %s to %s'%(music[musicBox.curselection()[0]], name))
+	musicBox.config(listvariable = music)
+	win.destroy()
+
+def changeName(event):
+	changeNameWin = Tk()
+	l = Label(changeNameWin, text = 'New name:')
+	e = Entry(changeNameWin)
+	b = Button(changeNameWin, text = 'Confirm', command = lambda : callback(e.get(), changeNameWin))
+
+	l.grid(row=0, column=0)
+	e.grid(row=0, column=1)
+	b.grid(row = 1, column = 1)
+
+	changeNameWin.mainloop()
+
+musicBox = Listbox(musicList, width = 80, height = 12, activestyle = 'dotbox', listvariable = music)
 for item in music:
     musicBox.insert(END,item)
 musicBox.bind('<ButtonRelease-1>',myplayer.getMusic)
+musicBox.bind('<Button-3>',changeName)
 musicBox.grid()
-
 
 toolBar.grid_propagate(False)
 
 albumFrame.place(x = 0, y = 0)
 toolBar.place(x = 0, y = 145)
-searchList.place(x = 0, y = 260)
-musicList.place(x = 0, y = 280)
+searchList.place(x = 0, y = 255)
+musicList.place(x = 0, y = 300)
 
 root.mainloop()
 db_conn.close()

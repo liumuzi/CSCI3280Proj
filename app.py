@@ -6,6 +6,9 @@ import itertools as it
 import win32api  
 import ctypes
 import sqlite3
+
+from PIL import ImageTk, Image
+
 import os
 
 #4char int 4char 4char int short short int int short short 4char int
@@ -27,10 +30,13 @@ class MusicPlay(object):
 		self.volon = True
 		self.volume = 15
 		self.SetVolume(self.volume)
-		self.showlyric = False
+
 
 		self.filename = None
 		self.total_info = None
+		self.sid = 0
+		self.txt = ""
+
 
 	def SetVolume(self, volume):
 		if volume == 15:
@@ -177,16 +183,31 @@ class MusicPlay(object):
 	    self.frontbuffer.SetCurrentPosition(self.currentpos)
 	    self.frontbuffer.Play(0)
 	
-	def showLyric(self):
-		if self.showlyric == False:
-			self.showlyric = True
-		elif self.showlyric == True:
-			self.showlyric = False
-		print("show lyric")
+
+	def showLyric(self, event):
+		lyric_path = self.getLyricPath(self.sid)
+		'''
+		fileHandle = open(lyric_path, 'r')
+		for line in fileHandle.readlines():
+			self.txt = self.txt+line.strip() + "\n"
+		fileHandle.close()
+		textVar.set(self.txt)
+		print(self.txt)'''
+		if lyricBox.size() != 0:
+			lyricBox.delete(0, lyricBox.size())
+		else:
+			f = open(lyric_path, 'r')
+			lyric = f.readlines()
+			for i in range(len(lyric)):
+				lyricBox.insert(i, lyric[i])
+		#print("lyric_path: "+lyric_path)
+
 
 	def getMusic(self, event):
 	    l = musicBox.curselection()
 	    self.filename = musicBox.get(l)
+
+
 	    #Read info
 	    theCursor.execute("SELECT name FROM song WHERE file_name = '%s'" %(self.filename))
 	    info_name = self.shortInfo(str(theCursor.fetchall()))
@@ -209,8 +230,35 @@ class MusicPlay(object):
 		song_info = str(song_info).replace("',)]", "")
 		return str(song_info)
 
+
+	def getAlbumPath(self, sid):
+		theCursor.execute("SELECT pic_path FROM album_pic WHERE songid = '%d'" %(sid))
+		tmp = theCursor.fetchall()
+		album_path = self.shortInfo(tmp)
+		return album_path
+
+	def getLyricPath(self, sid):
+		theCursor.execute("SELECT lyric_path FROM lyric WHERE songid = '%d'" %(sid))
+		tmp = theCursor.fetchall()
+		lyric_path = self.shortInfo(tmp)
+		return lyric_path
+
 	def doSearch(self):
 		input = search_text.get()
+		print(input)
+		x = 0
+		for i in range(15):
+			if song_name_list[i].find(input) != -1 or singer_list[i].find(input) != -1 or album_list[i].find(input) != -1:
+				x = i+1
+				break
+		if x != 0:
+			self.searchResult(x)
+			return
+		else:
+			self.searchResult(x)
+			return
+		'''
+
 		theCursor.execute("SELECT song_id FROM song WHERE file_name = '%s'" %(input))
 		tmp = theCursor.fetchall()
 		a = self.searchTest(tmp)
@@ -236,7 +284,9 @@ class MusicPlay(object):
 		tmp = theCursor.fetchall()
 		a = self.searchTest(tmp)
 		self.searchResult(a)
-		return
+
+		return'''
+
 
 
 	def searchTest(self, temp):
@@ -258,18 +308,33 @@ class MusicPlay(object):
 		info_singer = self.shortInfo(str(theCursor.fetchall()))
 		theCursor.execute("SELECT album FROM song WHERE song_id = '%d'" %(songid))
 		info_album = self.shortInfo(str(theCursor.fetchall()))
-		self.total_info = info_name + ", " + info_singer + ", " + info_album
+
+		self.total_info = str(songid)+".wav, "+info_name + ", " + info_singer + ", " + info_album
 		text_info.set(self.total_info)
 
-
-
-
-
 myplayer = MusicPlay()
+
+song_name_list = [None]*15
+singer_list = [None]*15
+album_list = [None]*15
+for i in range(15):
+	theCursor.execute("SELECT name FROM song WHERE song_id = '%d'" %(i+1))
+	song_name_list[i] = myplayer.shortInfo(str(theCursor.fetchall()))
+	theCursor.execute("SELECT singer FROM song WHERE song_id = '%d'" %(i+1))
+	singer_list[i] = myplayer.shortInfo(str(theCursor.fetchall()))
+	theCursor.execute("SELECT album FROM song WHERE song_id = '%d'" %(i+1))
+	album_list[i] = myplayer.shortInfo(str(theCursor.fetchall()))
+print(song_name_list)
+print(singer_list)
+print(album_list)
+print(singer_list[1])
+
+
 root = Tk()
 root.title('Music Player')
-root.minsize(width=500,height=400)
-root.maxsize(width=500,height=400)
+root.minsize(width=500,height=450)
+root.maxsize(width=500,height=450)
+
 
 albumFrame = Frame(root,width=500,height=145, bd = 3,bg='lightblue')
 toolBar = Frame(root,width=500,height=115, bd = 2,bg='white')
@@ -283,12 +348,6 @@ def setVol():
 		volumeButton.config(image = volumeIcon)
 	myplayer.setVol()
 
-def setLyric():
-	if myplayer.showlyric == False:
-		lyricButton.config(image = lyricIcon)
-	elif myplayer.showlyric == True:
-		lyricButton.config(image=infoIcon)
-	myplayer.showLyric()
 
 volumeIcon = PhotoImage(file='volume.png').subsample(2,2)
 muteIcon = PhotoImage(file = 'mute.png').subsample(2,2)
@@ -300,7 +359,8 @@ playIcon = PhotoImage(file='play.png').subsample(1,1)
 pauseIcon = PhotoImage(file='pause.png').subsample(1,1)
 stopIcon = PhotoImage(file='stop.png').subsample(1,1)
 lyricIcon = PhotoImage(file='lyric.png').subsample(2,2)
-infoIcon = PhotoImage(file='song_info.png').subsample(3,3)
+
+
 
 volumeButton = Button(toolBar, image = volumeIcon, command = setVol, width = 35, height = 35,relief="solid",bd=0,bg='white')
 volumeButton.place(x=15,y=23)
@@ -333,9 +393,10 @@ playNextButton = Button(toolBar, image = playNextIcon, width = 35, height = 35,r
 playNextButton.bind('<Button-1>', myplayer.playNext)
 playNextButton.place(x=383,y=25)
 
-lyricButton = Button(toolBar, image = lyricIcon,width = 35, command = setLyric, height = 35,relief="solid",bd=0,bg='white')
-#lyricButton.bind('<Button-1>', setLyric)
-lyricButton.place(x=447,y=24)
+
+lyricButton = Button(toolBar, image = lyricIcon,width = 35, height = 35,relief="solid",bd=0,bg='white')
+lyricButton.bind('<Button-1>', myplayer.showLyric)
+
 
 
 v = StringVar()
@@ -350,6 +411,19 @@ prog = Scale(
     variable = v
 )
 prog.place(x=1,y=80)
+
+
+#Album Box
+img = ImageTk.PhotoImage(Image.open("album_pics/0.jpg"))
+albumBox = Label(albumFrame, image = img, width = 140, height = 140)
+albumBox.place(x = 0, y = 0)
+
+#Lyric Box
+textVar = StringVar()
+textVar.set("")
+lyricBox = Listbox(albumFrame,  width =52 , height = 9,activestyle = 'none')
+lyricBox.place(x = 150, y =0)
+
 
 #Search Box
 search_text = StringVar()
@@ -370,6 +444,7 @@ infoLabel.grid()
 
 #Music List
 
+
 def callback(name, win):
     print('Change music %d to %s'%(musicBox.curselection()[0], name))
     win.destroy()
@@ -386,13 +461,16 @@ def changeName(event):
 
     changeNameWin.mainloop()
 
+
 music=['1.wav','2.wav','3.wav','4.wav','5.wav','6.wav','7.wav','8.wav','9.wav','10.wav','11.wav','12.wav','13.wav','14.wav','15.wav']
 
 musicBox = Listbox(musicList, width = 80, height = 8, activestyle = 'dotbox', listvariable = music)
 for item in music:
     musicBox.insert(END,item)
 musicBox.bind('<ButtonRelease-1>',myplayer.getMusic)
+
 musicBox.bind('<Button-3>',changeName)
+
 musicBox.grid()
 
 
