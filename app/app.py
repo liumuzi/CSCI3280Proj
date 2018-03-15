@@ -27,6 +27,7 @@ class MusicPlay(object):
 		self.volon = True
 		self.volume = 15
 		self.SetVolume(self.volume)
+		self.showlyric = False
 
 		self.filename = None
 		self.total_info = None
@@ -176,7 +177,11 @@ class MusicPlay(object):
 	    self.frontbuffer.SetCurrentPosition(self.currentpos)
 	    self.frontbuffer.Play(0)
 	
-	def showLyric(self, event):
+	def showLyric(self):
+		if self.showlyric == False:
+			self.showlyric = True
+		elif self.showlyric == True:
+			self.showlyric = False
 		print("show lyric")
 
 	def getMusic(self, event):
@@ -278,6 +283,13 @@ def setVol():
 		volumeButton.config(image = volumeIcon)
 	myplayer.setVol()
 
+def setLyric():
+	if myplayer.showlyric == False:
+		lyricButton.config(image = lyricIcon)
+	elif myplayer.showlyric == True:
+		lyricButton.config(image=infoIcon)
+	myplayer.showLyric()
+
 volumeIcon = PhotoImage(file='volume.png').subsample(2,2)
 muteIcon = PhotoImage(file = 'mute.png').subsample(2,2)
 volumeUpIcon = PhotoImage(file='volume_up.png').subsample(3,3)
@@ -288,7 +300,7 @@ playIcon = PhotoImage(file='play.png').subsample(1,1)
 pauseIcon = PhotoImage(file='pause.png').subsample(1,1)
 stopIcon = PhotoImage(file='stop.png').subsample(1,1)
 lyricIcon = PhotoImage(file='lyric.png').subsample(2,2)
-
+infoIcon = PhotoImage(file='song_info.png').subsample(3,3)
 
 volumeButton = Button(toolBar, image = volumeIcon, command = setVol, width = 35, height = 35,relief="solid",bd=0,bg='white')
 volumeButton.place(x=15,y=23)
@@ -321,8 +333,8 @@ playNextButton = Button(toolBar, image = playNextIcon, width = 35, height = 35,r
 playNextButton.bind('<Button-1>', myplayer.playNext)
 playNextButton.place(x=383,y=25)
 
-lyricButton = Button(toolBar, image = lyricIcon,width = 35, height = 35,relief="solid",bd=0,bg='white')
-lyricButton.bind('<Button-1>', myplayer.showLyric)
+lyricButton = Button(toolBar, image = lyricIcon,width = 35, command = setLyric, height = 35,relief="solid",bd=0,bg='white')
+#lyricButton.bind('<Button-1>', setLyric)
 lyricButton.place(x=447,y=24)
 
 
