@@ -5,12 +5,18 @@ from tkinter import *
 import itertools as it
 import win32api  
 import ctypes
+import sqlite3
+import os
 
 #4char int 4char 4char int short short int int short short 4char int
 WAV_HEADER_SIZE = struct.calcsize('<4sl4s4slhhllhh4sl')
 BUFFERSIZE = 204800
 MINVOLUME = 0
 MAXVOLUME = 4294967295
+
+db_conn = sqlite3.connect('app.db')
+theCursor = db_conn.cursor()
+print("Database Opened")
 
 class MusicPlay(object):
 	def __init__(self):
@@ -21,6 +27,9 @@ class MusicPlay(object):
 		self.volon = True
 		self.volume = 15
 		self.SetVolume(self.volume)
+
+		self.filename = None
+		self.total_info = None
 
 	def SetVolume(self, volume):
 		if volume == 15:
@@ -172,10 +181,81 @@ class MusicPlay(object):
 
 	def getMusic(self, event):
 	    l = musicBox.curselection()
-	    filename = musicBox.get(l)
-	    print(filename)
+	    self.filename = musicBox.get(l)
+	    #Read info
+	    theCursor.execute("SELECT name FROM song WHERE file_name = '%s'" %(self.filename))
+	    info_name = self.shortInfo(str(theCursor.fetchall()))
+	    theCursor.execute("SELECT singer FROM song WHERE file_name = '%s'" %(self.filename))
+	    info_singer = self.shortInfo(str(theCursor.fetchall()))
+	    theCursor.execute("SELECT album FROM song WHERE file_name = '%s'" %(self.filename))
+	    info_album = self.shortInfo(str(theCursor.fetchall()))
+	    self.total_info = info_name + ", " + info_singer + ", " + info_album
+	    #infoBox.insert(END,self.total_info)
+	    text_info.set(self.total_info)
+
+	    self.filename = "wav/" + self.filename
+	    print(self.filename)
 	    self.lastclick = 'back'
-	    self.add(filename)
+	    self.add(self.filename)
+
+	def shortInfo(self, info):
+		song_info = info
+		song_info = str(song_info).replace("[('", "")
+		song_info = str(song_info).replace("',)]", "")
+		return str(song_info)
+
+	def doSearch(self):
+		input = search_text.get()
+		theCursor.execute("SELECT song_id FROM song WHERE file_name = '%s'" %(input))
+		tmp = theCursor.fetchall()
+		a = self.searchTest(tmp)
+		if a!=0:
+			self.searchResult(a)
+			return
+
+		theCursor.execute("SELECT song_id FROM song WHERE name = '%s'" %(input))
+		tmp = theCursor.fetchall()
+		a = self.searchTest(tmp)
+		if a!=0:
+			self.searchResult(a)
+			return
+
+		theCursor.execute("SELECT song_id FROM song WHERE singer = '%s'" %(input))
+		tmp = theCursor.fetchall()
+		a = self.searchTest(tmp)
+		if a!=0:
+			self.searchResult(a)
+			return
+
+		theCursor.execute("SELECT song_id FROM song WHERE album = '%s'" %(input))
+		tmp = theCursor.fetchall()
+		a = self.searchTest(tmp)
+		self.searchResult(a)
+		return
+
+
+	def searchTest(self, temp):
+		if str(temp) != "[]":
+			tmpid = str(temp)
+		else:
+			tmpid = "[(0,)]"
+		tmpid = tmpid.replace("[(", "")
+		tmpid = tmpid.replace(",)]", "")
+		return(int(tmpid))
+
+	def searchResult(self, songid):
+		if songid == 0:
+			text_info.set("No Result")
+			return
+		theCursor.execute("SELECT name FROM song WHERE song_id = '%d'" %(songid))
+		info_name = self.shortInfo(str(theCursor.fetchall()))
+		theCursor.execute("SELECT singer FROM song WHERE song_id = '%d'" %(songid))
+		info_singer = self.shortInfo(str(theCursor.fetchall()))
+		theCursor.execute("SELECT album FROM song WHERE song_id = '%d'" %(songid))
+		info_album = self.shortInfo(str(theCursor.fetchall()))
+		self.total_info = info_name + ", " + info_singer + ", " + info_album
+		text_info.set(self.total_info)
+
 
 
 
@@ -188,6 +268,7 @@ root.maxsize(width=500,height=400)
 
 albumFrame = Frame(root,width=500,height=145, bd = 3,bg='lightblue')
 toolBar = Frame(root,width=500,height=115, bd = 2,bg='white')
+searchList = Frame(root,width=500,height=20, bd = 2)
 musicList = Frame(root,width=500,height=100, bd = 2)
 
 def setVol():
@@ -258,20 +339,40 @@ prog = Scale(
 )
 prog.place(x=1,y=80)
 
-# here the music list should be read from database, this list is only for debug
+#Search Box
+search_text = StringVar()
+searchBox = Entry(searchList, textvariable = search_text, width = 70)
+searchBox.place(x = 0, y  =0)
 
-musiclist=['1.wav','chapter.wav','music 3','music 4']
+#Search Button
+searchButton = Button(searchList, text = "Search", width = 8, height = 1, command = myplayer.doSearch)
+searchButton.place(x = 425, y = 0)
 
-musicBox = Listbox(musicList, width = 80, height = 8, activestyle = 'dotbox')
-for item in musiclist:
+#Song Information
+text_info = StringVar()
+text_info.set("")
+infoLabel = Label(musicList, textvariable = text_info)
+infoLabel.grid()
+
+
+
+#Music List
+music=['1.wav','2.wav','3.wav','4.wav','5.wav','6.wav','7.wav','8.wav','9.wav','10.wav','11.wav','12.wav','13.wav','14.wav','15.wav']
+
+musicBox = Listbox(musicList, width = 80, height = 8, activestyle = 'dotbox', listvariable = music)
+for item in music:
     musicBox.insert(END,item)
 musicBox.bind('<ButtonRelease-1>',myplayer.getMusic)
 musicBox.grid()
+
 
 toolBar.grid_propagate(False)
 
 albumFrame.place(x = 0, y = 0)
 toolBar.place(x = 0, y = 145)
-musicList.place(x = 0, y = 260)
+searchList.place(x = 0, y = 260)
+musicList.place(x = 0, y = 280)
 
 root.mainloop()
+db_conn.close()
+print("Database Closed")
